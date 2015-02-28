@@ -28,16 +28,21 @@
     [super tearDown];
 }
 
-- (void)testNotificationDueTimeDescription
+PPRScheduleTime * Nine15scheduleTime()
 {
-
-    
     NSDateComponents *dateComponents = [[NSDateComponents alloc]init];
     dateComponents.hour = 9;
     dateComponents.minute = 15;
     
-    PPRScheduleTime *scheduleTime = [[PPRScheduleTime alloc]initWithTimeOfDay:dateComponents
+    return [[PPRScheduleTime alloc]initWithTimeOfDay:dateComponents
                                      ];
+}
+
+- (void)testNotificationDueTimeDescription
+{
+
+    
+    PPRScheduleTime *scheduleTime = Nine15scheduleTime();
     PPRScheduledEvent *scheduledEvent =
     [[PPRScheduledEvent alloc]initWithEventName:@"TestEventName" scheduledTime:scheduleTime];
     PPRFacility *facility = [[PPRFacility alloc]init];
@@ -57,16 +62,11 @@
  
 }
 
-- (void)testNotificationDueTimeDescriptionWhenCompleted
+- (void)testNotificationRawTimeDescription
 {
     
     
-    NSDateComponents *dateComponents = [[NSDateComponents alloc]init];
-    dateComponents.hour = 9;
-    dateComponents.minute = 15;
-    
-    PPRScheduleTime *scheduleTime = [[PPRScheduleTime alloc]initWithTimeOfDay:dateComponents
-                                     ];
+    PPRScheduleTime *scheduleTime = Nine15scheduleTime();
     PPRScheduledEvent *scheduledEvent =
     [[PPRScheduledEvent alloc]initWithEventName:@"TestEventName" scheduledTime:scheduleTime];
     PPRFacility *facility = [[PPRFacility alloc]init];
@@ -84,38 +84,28 @@
     completionDateComponents.minute = 21;
     action.completionTime = [[NSCalendar currentCalendar] dateFromComponents:completionDateComponents];
 
-    NSString *dueTimeDescription = [action dueTimeDescription];
+    NSString *t = [action rawTimeDescription];
     
-    XCTAssertEqualObjects(dueTimeDescription, @"At 9:15 AM - 9:21:00 AM");
+    XCTAssertEqualObjects(t, @"9:15 AM");
     
     
 }
 
 - (void)testTextForDetail
 {
-    NSDateComponents *dateComponents = [[NSDateComponents alloc]init];
-    dateComponents.hour = 9;
-    dateComponents.minute = 15;
-    
-    PPRScheduleTime *scheduleTime = [[PPRScheduleTime alloc]initWithTimeOfDay:dateComponents
-                                     ];
+    PPRScheduleTime *scheduleTime = Nine15scheduleTime();
     PPRScheduledEvent *scheduledEvent =
     [[PPRScheduledEvent alloc]initWithEventName:@"TestEventName" scheduledTime:scheduleTime];
     PPRFacility *facility = [[PPRFacility alloc]init];
     
     PPRAction *action = [[PPRAction alloc ]initWithFacility:facility scheduledEvent:scheduledEvent parent:nil actions:nil];
     action.status = kStatusCompleted;
-    XCTAssertEqualObjects(action.textForDetail, @"    At 9:15 AM - (null)");
+    XCTAssertEqualObjects(action.textForDetail, @"At 9:15 AM - (null)");
 }
 
 - (void)testTextForLabel
 {
-    NSDateComponents *dateComponents = [[NSDateComponents alloc]init];
-    dateComponents.hour = 9;
-    dateComponents.minute = 15;
-    
-    PPRScheduleTime *scheduleTime = [[PPRScheduleTime alloc]initWithTimeOfDay:dateComponents
-                                     ];
+    PPRScheduleTime *scheduleTime = Nine15scheduleTime();
     PPRScheduledEvent *scheduledEvent =
     [[PPRScheduledEvent alloc]initWithEventName:@"TestEventName" scheduledTime:scheduleTime];
     PPRFacility *facility = [[PPRFacility alloc]init];
@@ -124,5 +114,50 @@
     action.status = kStatusCompleted;
     XCTAssertEqualObjects(action.textForLabel, @"TestEventName");
 }
+
+- (void)testTextForGroupedLabel
+{
+    PPRScheduleTime *scheduleTime = Nine15scheduleTime();
+    PPRScheduledEvent *scheduledEvent =
+    [[PPRScheduledEvent alloc]initWithEventName:@"TestEventName" scheduledTime:scheduleTime];
+    PPRFacility *facility = [[PPRFacility alloc]init];
+    
+    PPRAction *action = [[PPRAction alloc ]initWithFacility:facility scheduledEvent:scheduledEvent parent:nil actions:nil];
+    action.status = kStatusCompleted;
+    NSDateComponents * offset5min = [[NSDateComponents alloc] init];
+    offset5min.minute = 5;
+    PPRScheduleTime *childScheduleTime = [[PPRScheduleTime alloc] initWithType:PPRScheduleTimeRelativeToStartOfParent dailyEvent:@"TestEventName" offset:offset5min];
+    PPRScheduledEvent *childScheduledEvent =
+    [[PPRScheduledEvent alloc]initWithEventName:@"ChildTestEventName" scheduledTime:childScheduleTime];
+    const PPRAction *const childAction = [[PPRAction alloc] initWithFacility:facility scheduledEvent:childScheduledEvent parent:action actions:nil];
+    const BOOL startsWithSpace = [childAction.textForLabel hasPrefix:@" "];
+    XCTAssert(!startsWithSpace,  @"label shouldn't start with space, for child action with typical name");
+}
+
+- (void)testNotificationDueTimeDescription_MAYBE_MISTAKEN_COPY
+{
+    
+    
+    PPRScheduleTime *scheduleTime = Nine15scheduleTime();
+    PPRScheduledEvent *scheduledEvent =
+    [[PPRScheduledEvent alloc]initWithEventName:@"TestEventName" scheduledTime:scheduleTime];
+    PPRFacility *facility = [[PPRFacility alloc]init];
+    
+    PPRAction *action = [[PPRAction alloc ]initWithFacility:facility scheduledEvent:scheduledEvent parent:nil actions:nil];
+    action.status = kStatusScheduled;
+    
+    NSDateComponents *dueDateComponents = [[NSDateComponents alloc]init];
+    dueDateComponents.hour = 9;
+    dueDateComponents.minute = 20;
+    action.dueTime = [[NSCalendar currentCalendar] dateFromComponents:dueDateComponents];
+    
+    NSString *dueTimeDescription = [action dueTimeDescription];
+    
+    XCTAssertEqualObjects(dueTimeDescription, @"At 9:15 AM - 9:20:00 AM");
+    
+    
+}
+
+
 
 @end

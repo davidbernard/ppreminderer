@@ -23,7 +23,7 @@
 @end
 
 @implementation PPRScheduleTableViewController{
-    NSArray *_scheduleEntries;
+    NSArray *_scheduleSections;
     NSString *_currentActionID;
     PPRAction *_currentAction;
 }
@@ -99,7 +99,7 @@
     UIViewController *dest = [segue destinationViewController];
     if ([dest isKindOfClass:[PPRActionViewController class]]) {
         NSIndexPath *indexPath = [self.tableView indexPathForCell:sender];
-        PPRAction *item = _scheduleEntries[indexPath.row];
+        PPRAction *item = _scheduleSections[indexPath.section][indexPath.row];
         _currentActionID = item.actionId;
         _currentAction = item;
         [(PPRActionViewController *)dest setAction:_currentAction];
@@ -115,6 +115,61 @@
     return self;
 }
 
+// Construct the sections for the table view controller from a 'scheduleEntries' array of PPRActions.  This is an array that has been sorted a particular way - see the compareForSchedule comparator and the loadActions method.
+NSArray* sectionsFrom(const NSArray *const schedEntries)
+{
+    const NSInteger N = [schedEntries count];
+    NSInteger i = 0; // current schedule entry index
+    NSMutableArray * sections = [[NSMutableArray alloc] init];
+    const BOOL oneItemPerSection = NO;
+    if (!oneItemPerSection) {
+        BOOL last_asg = NO; // Last value of asg (see below), if any;  otherwise NO.
+        while (i < N) {
+            PPRAction * a = (PPRAction *) schedEntries[i];
+            const BOOL asg = [a shouldGroup];
+            if (i+1 == N) {
+                // at the last entry
+                if (last_asg && (!asg)) {
+                    [sections addObject:[[NSMutableArray alloc] init]];
+                }
+            } else {
+                // a is not the last entry;  look at the following entry
+                PPRAction * b = (PPRAction *) schedEntries[i+1];
+                const BOOL bsg = [b shouldGroup];
+                if (asg) {
+                    // a should be grouped, in a section that started before a; no need for a new one
+                } else if (last_asg && (!asg)) {
+                    // previous a was in a group, current isn't; so start a new top level section
+                    [sections addObject:[[NSMutableArray alloc] init]];
+                } else if ((!asg) && (!bsg)) {
+                    // a & b both at the 'top level'; no need for a new one
+                } else if ((!asg) && bsg) {
+                    // a shouldn't be grouped with previous, but followed by something that should be grouped with it
+                    [sections addObject:[[NSMutableArray alloc] init]];
+                } else {
+                    assert(NO); // shouldn't be reached
+                }
+            }
+            if ([sections count] == 0) {
+                // We don't have any section yet.  But we have an item that must go into a section.  This can happen when the first two items are both not to be grouped.
+                [sections addObject:[[NSMutableArray alloc] init]];
+            }
+            NSInteger csi; // current section index
+            csi = [sections count] - 1;
+            [sections[csi] addObject:a];
+            ++ i;
+            last_asg = asg;
+        }
+    } else {
+        assert(oneItemPerSection);
+        for (PPRAction *item in schedEntries) {
+            NSArray * thisSection = [[NSArray alloc] initWithObjects: item, nil];
+            [sections addObject:thisSection];
+        }
+    }
+    return [[NSArray alloc] initWithArray:sections];
+}
+
 - (void)loadActions {
     PPRAction *actionFilter = [[PPRAction alloc]init];
     actionFilter.facilityId =[PPRShiftManager sharedInstance].shift.facilityId;
@@ -122,12 +177,13 @@
     [(PPRActionManager *)[PPRActionManager sharedInstance]
      getAction:actionFilter
      success:^(NSArray * actions) {
-         _scheduleEntries = [actions sortedArrayUsingComparator:^NSComparisonResult(id obj1, id obj2) {
+         NSArray *_scheduleEntries = [actions sortedArrayUsingComparator:^NSComparisonResult(id obj1, id obj2) {
              PPRAction *action1 = (PPRAction *)obj1;
              PPRAction *action2 = obj2;
              return [action1 compareForSchedule: action2];
              
          }];
+         _scheduleSections = sectionsFrom(_scheduleEntries);
      }
      failure:^(NSError * dummy)   { } ];
     
@@ -170,13 +226,49 @@
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
     // Return the number of sections.
-    return 1;
+    return [_scheduleSections count];
+}
+
+// Decide whether the section looks like one that starts with a parent action.
+BOOL hasParent(const NSArray *const section)
+{
+    const NSInteger N = [section count];
+    if (0 == N) {
+        return NO;
+    } else if (1 == N) {
+        return NO; // Not checking whether it is a section with something that counts as a parent, but with no children.
+    } else {
+        assert(2 <= N);
+        // PPRAction * firstAction = (PPRAction*) section[0];
+        PPRAction * secondAction = (PPRAction*) section[1];
+        return [secondAction shouldGroup];
+    }
+}
+
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)sectionNo {
+    const NSInteger N = [_scheduleSections count];
+    if (0 == N) {
+        return @"(section with no entries!)"; // degenerate case - I'm not even sure this is possible
+    } else if (1 == N) {
+        return nil;             // If only one section in table, don't have a title.
+    } else {
+        assert(1 < N);
+        const NSArray *const section = _scheduleSections;
+        PPRAction * firstAction = (PPRAction*) section[sectionNo][0]; // 1st action important in describing section
+        if (hasParent(section[sectionNo])) {
+            return [NSString stringWithFormat:@"Around %@", [firstAction context]];
+        } else {
+            return [NSString stringWithFormat:@"From %@", [firstAction rawTimeDescription]];
+        }
+        // maybe not reached
+        return @"(section title under construction)";
+    }
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
     // Return the number of rows in the section.
-    return [_scheduleEntries count];
+    return [_scheduleSections[section] count];
 }
 
 UIColor * colorForStatus(PPRAction *item) {
@@ -201,10 +293,11 @@ if ([item.status isEqualToString:        kStatusCompleted] ||
 - (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
 {
     
-    PPRAction *action = (PPRAction *)(_scheduleEntries[indexPath.row]);
+    PPRAction *action = (PPRAction *) ( _scheduleSections[indexPath.section][indexPath.row]);
     if ( [action isKindOfClass:[PPRAction class]]) {
         PPRAction *item = (PPRAction *)action;
         [cell setBackgroundColor:colorForStatus(item)];
+        cell.indentationLevel = action.shouldGroup      ? 1 : 0;
     }
 }
 
@@ -213,7 +306,7 @@ if ([item.status isEqualToString:        kStatusCompleted] ||
     static NSString *CellIdentifier = @"ActionCell";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier forIndexPath:indexPath];
     
-    PPRAction *action = (PPRAction *)(_scheduleEntries[indexPath.row]);
+    PPRAction *action = (PPRAction *) ( _scheduleSections[indexPath.section][indexPath.row]);
     if ( [action isKindOfClass:[PPRAction class]]) {
         PPRAction *item = (PPRAction *)action;
         
