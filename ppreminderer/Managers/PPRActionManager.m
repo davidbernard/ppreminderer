@@ -32,6 +32,7 @@ NSString *const kActionStateChangedNotificationName = @"ActionStateChangedNotifi
     for (id object in actions) {
         // Check type
         PPRAction *action = (PPRAction *)object;
+        
         _actions[action.actionId] = action;
     }
 }

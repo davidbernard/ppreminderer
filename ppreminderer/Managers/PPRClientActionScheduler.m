@@ -20,22 +20,31 @@
              || (parent == nil && event.scheduled.type !=PPRScheduleTimeRelativeToDailyEvent)) {
             PPRClientAction *action = [[PPRClientAction alloc] init];
             action.scheduledEvent = event;
-            action.dueTime = [self.scheduler dueTimeForScheduleTime:event.scheduled parentDueTime:nil previousDueTime:nil events:client.facility.events];
-            action.status = kStatusScheduled;
-            // Promote event name to be context
-            // FIXME
             action.context = event.eventName;
             action.client = client;
             action.facility = client.facility;
             action.clientId = client.clientId;
             action.facilityId = client.facility.facilityId;
             action.parent = parent;
-            [self.actionManager insertAction:action success:^(PPRAction *action) {
-                // FIXME
-                NSLog(@"Inserted action");
+
+            [self.actionManager getAction:action success:^(NSArray *actions) {
+                if ( actions.count == 0) {
+
+                    action.dueTime = [self.scheduler dueTimeForScheduleTime:event.scheduled parentDueTime:nil previousDueTime:nil events:client.facility.events];
+                    action.status = kStatusScheduled;
+                    
+                    [self.actionManager insertAction:action success:^(PPRAction *action) {
+                        // FIXME
+                        NSLog(@"Inserted action");
+                    } failure:^(NSError *error) {
+                        NSLog(@"Failure to insert action");
+                    }];
+                }
             } failure:^(NSError *error) {
-                NSLog(@"Failure to insert action");
+                    NSLog(@"Error searching for equivalent action");
+                    
             }];
+                
         }
     }];
 }

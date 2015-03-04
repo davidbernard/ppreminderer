@@ -64,7 +64,6 @@
     shift.shiftStatus = [NSNumber numberWithInt:PPRShiftStatusOn];
     shift.available = [NSNumber numberWithBool:true];
     shift.facilityId = @"FAC1";
-    [[PPRTestInitialiser sharedInstance] loadSchedule ];
     [self.shiftManager publishShift:self.shiftManager.shift];
 
 }

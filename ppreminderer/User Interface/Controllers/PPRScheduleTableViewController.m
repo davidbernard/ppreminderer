@@ -182,11 +182,10 @@
 UIColor * colorForStatus(PPRAction *item) {
     
 
-if ([item.status isEqualToString:        kStatusCompleted] ||
-    [item.status isEqualToString: kStatusCompletedAway]){
+if ([item.status isEqualToString:        kStatusCompleted] ) {
     return [UIColor                          greenColor  ];
-} else if ([item.status isEqualToString:        kStatusCompletedAway]){
-    return [UIColor                          cyanColor   ];
+} else if ([item.status isEqualToString: kStatusCompletedAway]){
+    return [UIColor                           cyanColor  ];
 } else if ([item.status isEqualToString: kStatusPostponed]){
     return[ UIColor                          orangeColor   ];
 } else if ([item.status isEqualToString: kStatusScheduled]){

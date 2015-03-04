@@ -1,6 +1,6 @@
 PODS:
   - Mantle (1.5.1):
-    - Mantle/extobjc
+    - Mantle/extobjc (= 1.5.1)
   - Mantle/extobjc (1.5.1)
   - NoticeView (3.0.7)
 
@@ -12,4 +12,4 @@ SPEC CHECKSUMS:
   Mantle: d7c5ac734579ec751c58fecbf56189853056c58c
   NoticeView: 357545814931eb92428de54449f405f91c84a1b8
 
-COCOAPODS: 0.34.4
+COCOAPODS: 0.35.0

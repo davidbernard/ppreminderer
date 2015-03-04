@@ -772,7 +772,6 @@ static PPRClient *createTestClient8(PPRFacility *facility)
         _facilityManager = [[PPRFacilityManager sharedInstance] init];
         _clientManager = [[PPRClientManager sharedInstance] init];
         _actionManager = [[PPRActionManager sharedInstance] init];
-        [_actionManager loadActions];
         
         _shiftManager = [[PPRShiftManager sharedInstance] init];
         _scheduler = [[PPRScheduler sharedInstance]init];
@@ -781,7 +780,13 @@ static PPRClient *createTestClient8(PPRFacility *facility)
   initWithScheduler:_scheduler actionManager:_actionManager clientActionScheduler:_clientActionScheduler];
         _actionScheduler = [[PPRActionScheduler sharedInstance]init];
         
+        // Load test clients and facilities
         [self loadTestData];
+        
+        // Load stored actions
+        [_actionManager loadActions];
+
+        // Schedule actions
         [self loadSchedule];
     }
     return self;
@@ -873,20 +878,13 @@ static PPRClient *createTestClient8(PPRFacility *facility)
 }
 - (void) loadSchedule
 {
-    self.actionManager.actions = [[NSMutableDictionary alloc] init];
+
+    // FIXME what does this mean
     self.notificationManager.notifications = [[NSMutableArray alloc] init];
     
     [self.facilityActionScheduler scheduleEventsForFacility:self.facility1];
     [self.facilityActionScheduler scheduleEventsForFacility:self.facility2];
     [self.facilityActionScheduler scheduleEventsForFacility:self.facility3];
-    //[self.clientActionScheduler scheduleEventsForClient:self.client1 forParentAction:nil];
-    //[self.clientActionScheduler scheduleEventsForClient:self.client2 forParentAction:nil];
-    // [self.clientActionScheduler scheduleEventsForClient:self.client3 forParentAction:nil];
-    //[self.clientActionScheduler scheduleEventsForClient:self.client4 forParentAction:nil];
-    //[self.clientActionScheduler scheduleEventsForClient:self.client5 forParentAction:nil];
-    //[self.clientActionScheduler scheduleEventsForClient:self.client6 forParentAction:nil];
-    //[self.clientActionScheduler scheduleEventsForClient:self.client7 forParentAction:nil];
-    //[self.clientActionScheduler scheduleEventsForClient:self.client8 forParentAction:nil];
     
 }
 @end
