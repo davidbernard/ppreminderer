@@ -29,6 +29,8 @@
 
 -(NSString *)dueTimeDescription;
 
+-(NSString *)rawTimeDescription;
+
 -(NSString *)notificationDescription;
 
 -(NSArray *)instructionsForAction;

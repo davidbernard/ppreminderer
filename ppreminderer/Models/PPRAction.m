@@ -58,6 +58,16 @@ NSString * const kStatusCompletedAway = @"CompletedAway";
     return [NSString stringWithFormat:@"%@ - %@", scheduleDescription, dueTimeDescription];
 }
 
+-(NSString *)rawTimeDescription {
+    // Cheat and use code copied from the start of dueTimeDescription.  Then  remove the "At " from the start of the result to get what we want.  Please refactor.
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+    [dateFormatter setTimeStyle:NSDateFormatterMediumStyle];
+    [dateFormatter setDateStyle:NSDateFormatterNoStyle];
+    NSString *fromDescription = self.scheduledEvent.scheduled.description;
+    NSString const * assumedPrefix = @"At ";
+    return [fromDescription substringFromIndex:[assumedPrefix length]];
+}
+
 - (NSArray *)instructionsForAction {
     return [[NSArray alloc]init];
 }
@@ -75,22 +85,14 @@ NSString * const kStatusCompletedAway = @"CompletedAway";
     return r;
 }
 
-// For hacking grouping by adding spaces at the start of the textLabel and the detailTextLabel.
-static const NSString *const ind0 = @"";
-static const NSString *const ind4 = @"    ";
-static const NSString *const ind8 = @"        ";
-
 - (NSString *)textForLabel {
-   NSString *const contextMaybeIndented =
-      [NSString stringWithFormat:@"%@%@",self.shouldGroup?ind4:ind0, self.scheduledEvent.eventName]; // Smaller indent for text rather than detail
+   NSString *const contextMaybeIndented = self.scheduledEvent.eventName; // Smaller indent for text rather than detail
    return contextMaybeIndented;
 }
 
 - (NSString *)textForDetail {
-    const BOOL sg = self.shouldGroup;
-    NSString *const detailMaybeIndented =
-        [NSString stringWithFormat:@"%@%@",sg?ind8:ind4, self.dueTimeDescription];
-        // [NSString stringWithFormat:@"%@%@ [%@]",sg?ind8:ind4, self.dueTimeDescription, self.actionId];
+    // const BOOL sg = self.shouldGroup; // Groupedness once had an effect on the detail text;  maybe it will in future.
+    NSString *const detailMaybeIndented = self.dueTimeDescription;
     return detailMaybeIndented;
 }
 + (NSDictionary *)encodingBehaviorsByPropertyKey {
